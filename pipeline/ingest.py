@@ -1,4 +1,3 @@
-
 import sys
 import pandas as pd
 import os
@@ -10,11 +9,9 @@ RTA_URL = 'https://www.rta.qld.gov.au/sites/default/files/2023-04/rta-bond-stati
 SOURCE_FOLDER = "../data/source_files"
 RAW_FOLDER = "../data/raw"
 
-
 # ==============================
 # get static data file from source
 # ==============================
-
 def download_file(url: str, prefix: str, file_type: str) -> str:
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     file_name =  f"{prefix}_{timestamp}.{file_type}"
@@ -22,7 +19,6 @@ def download_file(url: str, prefix: str, file_type: str) -> str:
     #Return file path 
     # Create folder if not exists
     os.makedirs(SOURCE_FOLDER, exist_ok=True)
-
     try:
         response = requests.get(url)
         print("Content-Type:", response.headers.get("Content-Type"))
@@ -38,11 +34,9 @@ def download_file(url: str, prefix: str, file_type: str) -> str:
     print(f"Downloaded file success here: {file_path}")
     return file_path
 
-    # download_file(RTA_URL, "rta_bond", "xlsx")
 # ==============================
 # extrarct excel multiple sheets  
 # ==============================
-
 def extract_rta_excel(file_path: str) -> dict[str, pd.DataFrame]:
     sheet_names = [
         "4 sub-rents",
@@ -56,12 +50,13 @@ def extract_rta_excel(file_path: str) -> dict[str, pd.DataFrame]:
             file_path,
             sheet_name=sheet,
             skiprows=4,          
-            header=None,         #  build header manually
+            header=None,         
             usecols="C,D,S:AM"   
         )
         #  Rows 0–2 = Excel rows 5–7 (header)
         header_rows = df.iloc[0:3]
 
+        #define headers manually here
         head_columns = []
         for col in header_rows.columns:
             parts = header_rows[col].astype(str)
@@ -70,66 +65,86 @@ def extract_rta_excel(file_path: str) -> dict[str, pd.DataFrame]:
 
         #  repalce with new headers
         df.columns = head_columns
-
         #  Remove header rows (5–7) + dropdown row (row 8)
         df = df.iloc[4:].reset_index(drop=True)
-
         #  Standardize column names
         df.columns = [c.upper().replace(" ", "_") for c in df.columns]
 
-        print(f"\n{sheet} columns:")
-        print(df.columns.tolist())
+        #notice it is float type when see in parquet -- correct it here
+        for col in df.columns:
+            df[col] = (
+                df[col]
+                .astype(str)
+                .str.replace(r"[$,]", "", regex=True) 
+                .str.strip()
+                .replace({"": None, "-": None})
+            )
+
+        # 2. Convert ALL numeric columns (except text ones)
+        for col in df.columns:
+            if col not in ["SUBURB", "DWELLING"]:
+                numeric = pd.to_numeric(df[col], errors="coerce")
+
+                rounded = numeric.round(0)
+                try:
+                    df[col] = rounded.astype("Int64")
+                except Exception:
+                    #  if something really wrong
+                    df[col] = numeric
 
         cleaned_sheets[sheet] = df
     return cleaned_sheets
 
-print("happy girl")
 # ==============================
-# STEP 3: SAVE RAW PARQUET
+#  SAVE RAW PARQUET. 
 # ==============================
-'''
-def save_raw_parquet(df: pd.DataFrame) -> str:
 
+
+# ==============================
+#  SAVE RAW PARQUET. 
+# ==============================
+def save_to_parquet(sheets: dict[str, pd.DataFrame]) -> None:
     os.makedirs(RAW_FOLDER, exist_ok=True)
 
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    file_path = os.path.join(RAW_FOLDER, f"rta_bonds_{timestamp}.parquet")
+    for name, df in sheets.items():
+        try:
+            file_name = name.lower().replace(" ", "_").replace("-", "_")
+            file_path = os.path.join(RAW_FOLDER, f"{file_name}.parquet")
 
-    df.to_parquet(file_path, index=False)
+            df.to_parquet(file_path, index=False)
+            
+        except Exception as e:
+            print(f"Failed to save {name}: {e}")
+            raise
+# ==============================
+# validate if df to parquet succeeded 
+# ==============================
+def validate_parquet_files() -> None:
+    file_count = 0
+    for file in os.listdir(RAW_FOLDER):
+        if file.endswith(".parquet"):
+            file_count += 1
 
-    print(f"Saved raw parquet → {file_path}")
-    return file_path
-'''
+            file_path = os.path.join(RAW_FOLDER, file)
+            df_check = pd.read_parquet(file_path)
+
+            print(f"\nPreview Validate: {file}")
+            print(df_check.head())
+            print(df_check.dtypes)
+            
+
+    print(f"\nTotal parquet files found: {file_count}")
 
 # ==============================
 # RUN PIPELINE (FIRST PART ONLY)
 # ==============================
-
 if __name__ == "__main__":
-
-    # 1. Download file
-    
     file_path = download_file(RTA_URL, "rta_bond", "xlsx")
-
     sheets = extract_rta_excel(file_path)
+    save_to_parquet(sheets)
+    validate_parquet_files()
+   
     
-    #df = sheets["4 sub-rents"]
-    #df
-
-
-    
-    # 3. Simple check (important)
-    for name, df in sheets.items():
-        print(f"\n{name} preview:")
-        print(df.head())
-
-    # 👉 Put breakpoint here to view table in VS Code
-    #raw_file = save_raw_parquet(df)
-    
-
-
-
-
 
 
 """
