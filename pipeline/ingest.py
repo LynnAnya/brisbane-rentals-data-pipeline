@@ -3,11 +3,22 @@ import pandas as pd
 import os
 import requests
 from datetime import datetime
+import json
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 #0 prep source
 RTA_URL = 'https://www.rta.qld.gov.au/sites/default/files/2023-04/rta-bond-statistics.xlsx'
 SOURCE_FOLDER = "../data/source_files"
 RAW_FOLDER = "../data/raw"
+SUBURBS_API_URL = "https://data.brisbane.qld.gov.au/api/explore/v2.1/catalog/datasets/suburb-boundaries/records"
+suburbs_params = {
+    "select": "suburb_name,geo_point_2d"
+}
+OCCUPATIONS_API_URL = "https://data.brisbane.qld.gov.au/api/explore/v2.1/catalog/datasets/occupation-employment-by-usual-resident-employment/records"
+occupations_params = {
+    "select": "sa4_name,sa3_name,sa2_name,code_1,name_1,code_2,name_2,"
+              "sc2_2021,sc2_2026,sc2_2031,sc2_2036"
+}
 
 # ==============================
 # get static data file from source
@@ -16,7 +27,7 @@ def download_file(url: str, prefix: str, file_type: str) -> str:
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     file_name =  f"{prefix}_{timestamp}.{file_type}"
     file_path = os.path.join(SOURCE_FOLDER,file_name )
-    #Return file path 
+    
     # Create folder if not exists
     os.makedirs(SOURCE_FOLDER, exist_ok=True)
     try:
@@ -35,17 +46,70 @@ def download_file(url: str, prefix: str, file_type: str) -> str:
     return file_path
 
 # ==============================
+#  Get api json from bne council + store source file   
+# ==============================
+def get_json_api(url: str, prefix: str, params: dict) -> dict:
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    file_name = f"{prefix}_{timestamp}.json"
+    file_path = os.path.join(SOURCE_FOLDER, file_name)
+
+    os.makedirs(SOURCE_FOLDER, exist_ok=True)
+
+    all_results = []
+    offset = 0
+    limit = 100  # API max for brisbane council data
+
+    while True:
+        # update params for pagination
+        params["limit"] = limit
+        params["offset"] = offset
+
+        try:
+            response = requests.get(url, params=params)
+            print("Request URL:", response.url)
+            print("Status:", response.status_code)
+            response.raise_for_status()
+
+            data = response.json()
+            results = data.get("results", [])
+
+        except Exception as e:
+            print(f"API failed: {e}")
+            raise
+
+        all_results.extend(results)
+
+        # if we get less than limit, means we have the last batch
+        if len(results) < limit:
+            break
+
+        offset += limit
+
+    #combined data
+    final_data = {
+        "total_count": len(all_results),
+        "results": all_results
+    }
+    #save raw JSON
+    with open(file_path, "w") as f:
+        json.dump(final_data, f)
+
+    print(f"Saved JSON --> {file_path}")
+    print(f"####### get {prefix} api success ########")
+    return final_data
+
+# ==============================
 # extrarct excel multiple sheets  
 # ==============================
 def extract_rta_excel(file_path: str) -> dict[str, pd.DataFrame]:
-    sheet_names = [
-        "4 sub-rents",
-        "5 sub-new-bonds",
-        "6 sub-all-bonds"
-    ]
+    sheet_name_map= {
+        "4 sub-rents": "sub_rents",
+        "5 sub-new-bonds": "sub_new_bonds",
+        "6 sub-all-bonds": "sub_all_bonds"
+    }
 
     cleaned_sheets = {}
-    for sheet in sheet_names:
+    for sheet, clean_name in sheet_name_map.items():  #made cahgne 16/4/26
         df = pd.read_excel(
             file_path,
             sheet_name=sheet,
@@ -79,7 +143,6 @@ def extract_rta_excel(file_path: str) -> dict[str, pd.DataFrame]:
                 .str.strip()
                 .replace({"": None, "-": None})
             )
-
         # 2. Convert ALL numeric columns (except text ones)
         for col in df.columns:
             if col not in ["SUBURB", "DWELLING"]:
@@ -92,14 +155,72 @@ def extract_rta_excel(file_path: str) -> dict[str, pd.DataFrame]:
                     #  if something really wrong
                     df[col] = numeric
 
-        cleaned_sheets[sheet] = df
+        cleaned_sheets[clean_name] = df
     return cleaned_sheets
 
 # ==============================
-#  SAVE RAW PARQUET. 
+#  extract sanitize suburbs data
 # ==============================
+def extract_bne_suburbs(data: dict) -> pd.DataFrame:
+    df = pd.json_normalize(data["results"])
 
+    # select only needed columns
+    df = df[[
+        "suburb_name",
+        "geo_point_2d.lon",
+        "geo_point_2d.lat"
+    ]]
+    #  rename columns
+    df = df.rename(columns={
+        "suburb_name": "SUBURB_NAME",
+        "geo_point_2d.lon": "LONGITUDE",
+        "geo_point_2d.lat": "LATITUDE"
+    })
 
+    #light clean data
+    text_cols = df.select_dtypes(include=["object", "string"]).columns
+    for col in text_cols:
+        df[col] = df[col].str.strip()
+
+    print("####### We are in extract brisbane suburbs ##########")
+    print(df.info)
+    return df
+# ==============================
+#  sanitize occupation-employment-by-usual-resident-employment data
+# ==============================
+def extract_occupations(data: dict) -> pd.DataFrame:
+    df = pd.json_normalize(data["results"])
+    # enforce schema columns
+    df = df[[
+        "sa4_name",
+        "sa3_name",
+        "sa2_name",
+        "code_1",
+        "name_1",
+        "code_2",
+        "name_2",
+        "sc2_2021",
+        "sc2_2026",
+        "sc2_2031",
+        "sc2_2036"
+    ]]
+
+    #  clean column names 
+    df.columns = (
+        df.columns
+        .str.upper()
+        .str.strip()
+        .str.replace(".", "_", regex=False)
+    )
+    # light clean data
+    text_cols = df.select_dtypes(include=["object", "string"]).columns
+    for col in text_cols:
+        df[col] = df[col].str.strip()
+
+    print("####### extract occupation dataset ##########")
+    print(df.info())
+
+    return df
 # ==============================
 #  SAVE RAW PARQUET. 
 # ==============================
@@ -132,19 +253,72 @@ def validate_parquet_files() -> None:
             print(df_check.head())
             print(df_check.dtypes)
             
-
     print(f"\nTotal parquet files found: {file_count}")
 
 # ==============================
-# RUN PIPELINE (FIRST PART ONLY)
+# group 3 data sources 
 # ==============================
-if __name__ == "__main__":
+def run_rta_pipeline():
     file_path = download_file(RTA_URL, "rta_bond", "xlsx")
     sheets = extract_rta_excel(file_path)
     save_to_parquet(sheets)
+
+def run_suburbs_pipeline():
+    data = get_json_api(
+        url=SUBURBS_API_URL,
+        prefix="bne_suburbs",
+        params=suburbs_params
+    )
+    df = extract_bne_suburbs(data)
+    save_to_parquet({"bne_suburbs": df})
+
+def run_occupation_pipeline():
+    data = get_json_api(
+        url=OCCUPATIONS_API_URL,
+        prefix="bne_occupations",
+        params=occupations_params
+    )
+    df = extract_occupations(data)
+    save_to_parquet({"bne_occupations": df})
+
+# ==============================
+# RUN ALL PIPELINES ALTOGETHER
+# ==============================
+def run_pipelines():
+    pipelines = [
+        ("RTA Pipeline", run_rta_pipeline),
+        ("Suburbs Pipeline", run_suburbs_pipeline),
+        ("Occupation Pipeline", run_occupation_pipeline)
+    ]
+
+    print("🚀 Starting ingestion pipelines...")
+
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        future_to_name = {
+            executor.submit(func): name for name, func in pipelines
+        }
+
+        for future in as_completed(future_to_name):
+            name = future_to_name[future]
+            try:
+                future.result()
+                print(f"✅ {name} completed successfully")
+            except Exception as e:
+                print(f"❌ {name} failed: {e}")
+                raise  # stop pipeline immediately
+
+    print("🔍 Running validation...")
     validate_parquet_files()
+    print("🎉 All pipelines completed successfully!")
+
+# ==============================
+# call main 
+# ==============================
+if __name__ == "__main__":
    
-    
+    run_pipelines()
+
+   
 
 
 """
