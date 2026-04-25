@@ -123,9 +123,16 @@ def extract_rta_excel(file_path: str) -> dict[str, pd.DataFrame]:
         #define headers manually here
         head_columns = []
         for col in header_rows.columns:
-            parts = header_rows[col].astype(str)
-            parts = [p for p in parts if p not in ["nan", ""]]
-            head_columns.append("_".join(parts))
+            #parts = header_rows[col].astype(str)
+            #parts = [p for p in parts if p not in ["nan", ""]]
+            #head_columns.append("_".join(parts))
+            parts = header_rows[col]
+            cleaned_parts = [
+                str(p).strip()
+                for p in parts
+                if pd.notna(p) and str(p).strip() != ""
+            ]
+            head_columns.append("_".join(cleaned_parts))
 
         #  repalce with new headers
         df.columns = head_columns
@@ -254,7 +261,6 @@ def validate_parquet_files() -> None:
             print(df_check.dtypes)
             
     print(f"\nTotal parquet files found: {file_count}")
-
 # ==============================
 # group 3 data sources 
 # ==============================
@@ -290,8 +296,7 @@ def run_pipelines():
         ("Suburbs Pipeline", run_suburbs_pipeline),
         ("Occupation Pipeline", run_occupation_pipeline)
     ]
-
-    print("🚀 Starting ingestion pipelines...")
+    print("...Starting ingestion pipelines...")
 
     with ThreadPoolExecutor(max_workers=3) as executor:
         future_to_name = {
@@ -305,7 +310,7 @@ def run_pipelines():
                 print(f"✅ {name} completed successfully")
             except Exception as e:
                 print(f"❌ {name} failed: {e}")
-                raise  # stop pipeline immediately
+                raise  # stop pipeline 
 
     print("🔍 Running validation...")
     validate_parquet_files()
@@ -315,7 +320,6 @@ def run_pipelines():
 # call main 
 # ==============================
 if __name__ == "__main__":
-   
     run_pipelines()
 
    
