@@ -1,0 +1,17 @@
+version: 2
+
+sources: 
+  - name: raw_brisbane
+    schema: raw
+    tables:
+    - name: rents
+      identifier: sub_rents
+    - name: new_bonds
+      identifier: sub_new_bonds
+    - name: all_bonds
+      identifier: sub_all_bonds
+    - name: suburbs
+      identifier: bne_suburbs
+    - name: occupations
+      identifier: bne_occupations
+  
