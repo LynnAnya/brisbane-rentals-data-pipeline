@@ -17,7 +17,7 @@ raw_rents AS (
     INNER JOIN {{ ref('stg_suburbs') }} sub
         ON INITCAP(TRIM(rent.suburb)) = INITCAP(TRIM(sub.suburb))
 ),
--- unpivot
+-- unpivot. ---> can use jinja to loop later
 unpivoted AS (
     SELECT
         suburb,

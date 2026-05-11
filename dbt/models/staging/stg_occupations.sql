@@ -14,7 +14,7 @@ WITH occupations_raw AS (
 cleaned AS (
     SELECT
         INITCAP(TRIM(sa4_name)) AS sa4_area,
-        INITCAP(TRIM(sa2_name)) AS sa2_area,
+        INITCAP(TRIM(REGEXP_REPLACE(sa2_name, '\\s*\\(Qld\\)', ''))) AS sa2_area,
 
         TRIM(code_1) AS occupation_group_code,
         INITCAP(TRIM(name_1)) AS occupation_group,
@@ -38,11 +38,11 @@ unpivoted AS (
         occupation_detail_code,
         occupation_detail,
 
-        RIGHT(projection_year, 4) AS year,
+        TRY_TO_NUMBER(RIGHT(year, 4)) AS year,
         projected_workers
     FROM cleaned
     UNPIVOT INCLUDE NULLS (
-        projected_workers FOR projection_year IN (
+        projected_workers FOR year IN (
             sc2_2021,
             sc2_2026,
             sc2_2031,
