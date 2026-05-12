@@ -50,6 +50,7 @@ final AS (
             ELSE TRY_TO_NUMBER(SPLIT_PART(TRIM(dwelling), ' ', 2))
         END AS bedrooms,
 
+        --flag as there is all_dwellngs in dwelling (falt, house ...)
         CASE 
             WHEN LOWER(TRIM(dwelling)) = 'all dwellings' THEN 'ALL'
             ELSE 'DETAILED'

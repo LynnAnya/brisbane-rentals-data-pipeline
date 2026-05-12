@@ -31,13 +31,10 @@ unpivoted AS (
     SELECT
         sa4_area,
         sa2_area,
-
         occupation_group_code,
         occupation_group,
-
         occupation_detail_code,
         occupation_detail,
-
         TRY_TO_NUMBER(RIGHT(year, 4)) AS year,
         projected_workers
     FROM cleaned
