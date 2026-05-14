@@ -51,8 +51,8 @@ final AS (
         END AS bedrooms,
 
         CASE 
-            WHEN LOWER(TRIM(dwelling)) = 'all dwellings' THEN 'ALL'
-            ELSE 'DETAILED'
+            WHEN LOWER(TRIM(dwelling)) = 'all dwellings' THEN 'All'
+            ELSE 'Detailed'
         END AS dwelling_scope,
 
         CONCAT(

@@ -1,4 +1,4 @@
-WITH raw_suburbs AS (
+WITH raw_suburb AS (
     SELECT *
     FROM {{source('raw_brisbane','suburbs')}}
 )
@@ -6,4 +6,4 @@ WITH raw_suburbs AS (
 SELECT INITCAP(TRIM(suburb_name)) AS suburb,
        longitude,
        latitude
-FROM raw_suburbs
+FROM raw_suburb

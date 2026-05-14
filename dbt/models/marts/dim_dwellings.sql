@@ -1,8 +1,8 @@
-WITH fct_housing AS (
+WITH stg_rents AS (
     SELECT *
-    FROM  {{ ref("fct_housing") }}
+    FROM  {{ ref("stg_rents") }}
 )
 SELECT  DISTINCT dwelling_type,
         bedrooms,
         dwelling_scope
-FROM fct_housing
+FROM stg_rents

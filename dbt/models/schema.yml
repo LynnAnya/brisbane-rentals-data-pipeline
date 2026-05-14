@@ -1,0 +1,68 @@
+models: 
+  - name: dim_suburbs 
+    data_tests: 
+     - exact_row_count:
+        arguments: 
+          row_count: 155
+        severity: warn
+      
+  - name: fct_housing
+    columns:
+     - name: suburb
+       data_tests:
+        - not_null
+     - name: dwelling_type
+       data_tests:
+        - not_null
+        - accepted_values:
+            arguments:
+              values: ['Flat', 'House', 'Townhouse', 'All Dwellings' ]
+     - name: bedrooms
+       data_tests:
+        - accepted_values: 
+            arguments:
+              values: [1,2,3,4]
+              config:
+                where: "bedrooms is not null"
+     - name: quarter
+       data_tests:
+        - not_null
+     - name: year
+       data_tests:
+        - not_null
+
+  - name: fct_occupations
+    columns:
+    - name: year
+      data_tests: 
+      - not_null
+  - name: dim_sa_geography
+    columns:
+    - name: sa2_area
+      data_tests:
+        - unique
+        - not_null 
+    - name: sa4_area
+      data_tests:
+        - not_null 
+  - name: dim_occupations
+    columns:
+    - name: occupation_detail_code
+      data_tests:
+        - unique
+        - not_null 
+    - name: occupation_detail
+      data_tests:
+        - unique
+        - not_null 
+    - name: occupation_group
+      data_tests:
+        - not_null
+    - name: occupation_group_code
+      data_tests:
+        - not_null 
+
+      
+    
+
+    

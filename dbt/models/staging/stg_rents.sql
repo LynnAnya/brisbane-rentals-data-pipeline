@@ -52,8 +52,8 @@ final AS (
 
         --flag as there is all_dwellngs in dwelling (falt, house ...)
         CASE 
-            WHEN LOWER(TRIM(dwelling)) = 'all dwellings' THEN 'ALL'
-            ELSE 'DETAILED'
+            WHEN LOWER(TRIM(dwelling)) = 'all dwellings' THEN 'All'
+            ELSE 'Detailed'
         END AS dwelling_scope,
 
         CONCAT(
