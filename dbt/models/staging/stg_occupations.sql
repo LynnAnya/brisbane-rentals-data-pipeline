@@ -36,7 +36,7 @@ unpivoted AS (
         occupation_detail_code,
         occupation_detail,
         TRY_TO_NUMBER(RIGHT(year, 4)) AS year,
-        projected_workers
+        TRY_TO_NUMBER(projected_workers) AS projected_workers
     FROM cleaned
     UNPIVOT INCLUDE NULLS (
         projected_workers FOR year IN (
