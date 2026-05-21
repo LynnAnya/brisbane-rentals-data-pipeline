@@ -66,6 +66,15 @@ final AS (
                 WHEN LEFT(qrt_period, 3) = 'DEC' THEN '4'
             END
         ) AS quarter,
+        TO_DATE(
+            RIGHT(qrt_period, 4) || '-' ||
+            CASE 
+                WHEN LEFT(qrt_period, 3) = 'MAR' THEN '01'
+                WHEN LEFT(qrt_period, 3) = 'JUN' THEN '04'
+                WHEN LEFT(qrt_period, 3) = 'SEP' THEN '07'
+                WHEN LEFT(qrt_period, 3) = 'DEC' THEN '10'
+            END || '-01'
+        ) AS quarter_date,
         median_rent
     FROM unpivoted
 )

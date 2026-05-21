@@ -17,6 +17,7 @@ fct_housing AS (
            rents.dwelling_type,
            rents.bedrooms,
            rents.quarter,
+           rents.quarter_date,
            TRY_TO_NUMBER(LEFT(rents.quarter, 4)) AS year,
            rents.median_rent,
            ab.total_bonds,
