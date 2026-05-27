@@ -16,6 +16,7 @@ fct_housing AS (
     SELECT rents.suburb,
            rents.dwelling_type,
            rents.bedrooms,
+           rents.dwelling_scope,
            rents.quarter,
            rents.quarter_date,
            TRY_TO_NUMBER(LEFT(rents.quarter, 4)) AS year,

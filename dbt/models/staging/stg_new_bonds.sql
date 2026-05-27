@@ -2,14 +2,18 @@
 -- clean suburb
 WITH cleaned_suburbs AS (
     SELECT
-        TRIM(REGEXP_REPLACE(suburb, '\\s*\\(\\d+\\)', '')) AS suburb,
+        CASE
+            WHEN TRIM(REGEXP_REPLACE(suburb, '\\s*\\(\\d+\\)', '')) = 'Brisbane' 
+            THEN 'Brisbane City'
+            ELSE TRIM(REGEXP_REPLACE(suburb, '\\s*\\(\\d+\\)', ''))
+        END AS suburb,
         bonds.* EXCLUDE (suburb)
     FROM {{ source('raw_brisbane','new_bonds') }} bonds
     WHERE
         REGEXP_SUBSTR(suburb, '\\d+') IS NULL
         OR TRY_TO_NUMBER(REGEXP_SUBSTR(suburb, '\\d+')) BETWEEN 4000 AND 4179
 ),
--- get only brisbane suburbs
+-- get only brisbane suburbs not qld suburbs
 raw_bonds AS (
     SELECT
         bonds.*

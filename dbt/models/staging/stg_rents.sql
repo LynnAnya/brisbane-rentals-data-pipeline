@@ -2,7 +2,11 @@
 -- clean suburb
 WITH cleaned_suburbs AS (
     SELECT
-        TRIM(REGEXP_REPLACE(suburb, '\\s*\\(\\d+\\)', '')) AS suburb,
+        CASE
+            WHEN TRIM(REGEXP_REPLACE(suburb, '\\s*\\(\\d+\\)', '')) = 'Brisbane' 
+            THEN 'Brisbane City'
+            ELSE TRIM(REGEXP_REPLACE(suburb, '\\s*\\(\\d+\\)', ''))
+        END AS suburb,
         rent.* EXCLUDE (suburb)
     FROM {{ source('raw_brisbane','rents') }} rent
     WHERE
