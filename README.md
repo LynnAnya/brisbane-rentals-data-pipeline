@@ -15,7 +15,7 @@ The purpose of this data pipeline is to answer following questions:
  - What do residents mostly work in selected areas?
 
 ## Data Architecture 
-![Architecture Diagram](images/architect_diagram.png)
+![Architecture Diagram](images/architect.png)
 
 Data Flow:
 1. **Ingestion** — Python scripts extract raw Excel files and APIs from open data sources and then convert to parquet files 
