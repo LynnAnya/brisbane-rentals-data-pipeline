@@ -1,8 +1,10 @@
 # Brisbane Rentals Data Analytics Pipeline
-Cloud native data pipeline and data modeling using Snowflake &amp; dbt for Brisbane, Australia rental market trend.
+
 
 ## Overview
-An end-to-end data anlytics project on Brisbane current rental market and resident's careers in each area. It aims tp help renters understand rental situation (Q1, 2026) in the area they would like to rent, where rents are rising, what kind of careers their neighbours work, demand of renters, growth of the market, and also comparing rents based on property types and bedrooms in each area.
+Cloud native end-to-end data pipeline and data modeling using Snowflake &amp; dbt for Brisbane, Australia rental trend.
+
+It aims to help renters understand rental situation (Q1, 2026) in the area they consider to rent, what kind of careers their neighbours work, demand of renters, growth of the market, and also comparing rents based on property types and bedrooms in each suburb.
 
 ## Business Requirements 
 The purpose of this data pipeline is to answer following questions:
@@ -16,9 +18,9 @@ The purpose of this data pipeline is to answer following questions:
 ![Architecture Diagram](images/architect_diagram.png)
 
 Data Flow:
-1. **Ingestion** — Python scripts extract raw Excel files and APIs from open data sources and then convert to Parquet
+1. **Ingestion** — Python scripts extract raw Excel files and APIs from open data sources and then convert to parquet files 
 2. **Storage** — Raw data is loaded into Snowflake raw schema
-3. **Transformation** — dbt models transform data through 2 layers:
+3. **Transformation** — dbt transforms data through 2 layers:
    staging → marts (dims and facts)
 4. **Visualisation** — Interactive dashboard for rental market 
    and workforce insights with Power BI
@@ -38,19 +40,46 @@ https://data.brisbane.qld.gov.au/pages/home/
 - Power BI: Dashboard
 
 ## Data Model
+![Model Layer](images/model_layer.png)
 
 
+![Data Model](images/data_model.png)
+
+
+### Housing
+- **fct_housing** — median rent, total bonds and new bonds 
+  by suburb, dwelling type, bedrooms, quarter and flages scope of dwelling type (Detailed, All) for the calculation purpose. 
+- **dim_suburbs** — suburb reference data with coordinates
+
+### Occupation
+- **fct_occupations** — projected workers by SA2 area, 
+  occupation group code and year (2021-2036)
+- **dim_occupations** — occupation group and detailed 
+  classification
+- **dim_sa_geography** — SA2 and SA4 geographic boundaries
 
 
 ## DashBoard
 
+![Housing Dashboard Demo](images/rent_demo.gif)
+
+![Occupation Dashboard Demo](images/career_demo.gif)
+
 ## Issues & Limitations
 - The dashboard presents the current rental market for and individual suburb or selected suburbs, without comparision between each area.
 - Brisbane suburbs cannot fully connect to SA2 statistical area as I first assumed. So, I separated dim_suburbs and dim_geography
-- It does not have all 195 suburbs in Brisbane because data source for rental data does not include all suburbs (some suburbs do not have resident property aka. Brisbane Airport, Port of Brisbane or very few data)
+- Not all 195 suburbs are included because rental data source does not cover all suburb, some suburbs have no residential properties, not enough data (e.g. Brisbane Airport, Port of Brisbane) or very few data.
+
 ## Future Improvememts 
-- Comparing between selected suburbs such as Chermside VS New Farm to make better decisions 
+- Comparing between selected suburbs (ex. Chermside VS New Farm) to make better decisions 
 - Big picture in SA4 boundaries such as overall rental in Brisbane - North area
 - Rental yield for better investment decision
-- Ranking top 10 most afforable/expensive suburb
-## How to run 
+- Ranking top 10 most afforable/expensive suburbs
+
+## Prerequisites
+ - Snowflake account
+ - dbt   
+ - Python 3.13.12
+ - uv package manager
+ - Power BI 
+
