@@ -67,7 +67,7 @@ https://data.brisbane.qld.gov.au/pages/home/
 
 ## Issues & Limitations
 - The dashboard presents the current rental market for and individual suburb or selected suburbs, without comparision between each area.
-- Brisbane suburbs cannot fully connect to SA2 statistical area as I first assumed. So, I separated dim_suburbs and dim_geography
+- Brisbane suburbs cannot fully connect to SA2 statistical area as I first assumed. Therefore, I separated dim_suburbs and dim_geography to not have data misleading.
 - Not all 195 suburbs are included because rental data source does not cover all suburb, some suburbs have no residential properties, not enough data (e.g. Brisbane Airport, Port of Brisbane) or very few data.
 
 ## Future Improvememts 
