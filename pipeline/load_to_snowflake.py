@@ -85,7 +85,7 @@ def clean_table_name(file_name: str) -> str:
 # CREATE STAGE
 # ==============================
 def create_stage(conn: snowflake.connector.SnowflakeConnection) -> None:
-    """Create the internal stage if it does not already exist (idempotent)."""
+    """Create the internal stage if it does not already exist. place to store object in snow"""
     with conn.cursor() as cur:
         cur.execute(f"CREATE STAGE IF NOT EXISTS {STAGE_NAME}")
     logger.info("Stage '%s' is ready.", STAGE_NAME)
